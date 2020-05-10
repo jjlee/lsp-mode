@@ -5845,17 +5845,19 @@ REFERENCES? t when METHOD returns references."
   (let ((method (if (stringp msg-or-method)
                     msg-or-method
                   (plist-get msg-or-method :method))))
-    (-if-let (reqs (cdr (assoc method lsp-method-requirements)))
-        (-let (((&plist :capability :check-command) reqs))
-          (--filter
-           (with-lsp-workspace it
-             (or
-              (when check-command (funcall check-command it))
-              (when capability (lsp--capability capability))
-              (lsp--registered-capability method)
-              (and (not capability) (not check-command))))
-           (lsp-workspaces)))
-      (lsp-workspaces))))
+    (if (equal method "textDocument/rangeFormatting")
+        nil
+      (-if-let (reqs (cdr (assoc method lsp-method-requirements)))
+          (-let (((&plist :capability :check-command) reqs))
+            (--filter
+            (with-lsp-workspace it
+              (or
+                (when check-command (funcall check-command it))
+                (when capability (lsp--capability capability))
+                (lsp--registered-capability method)
+                (and (not capability) (not check-command))))
+            (lsp-workspaces)))
+        (lsp-workspaces)))))
 
 (defalias 'lsp-feature? 'lsp--find-workspaces-for)
 
@@ -7812,17 +7814,7 @@ CALLBACK is the status callback passed by Flycheck."
                 :column (1+ (lsp-diagnostic-column diag))
                 :message (lsp-diagnostic-message diag)
                 :level (lsp--flycheck-calculate-level diag)
-                :id (lsp-diagnostic-code diag)
-                :end-column (-> diag
-                                lsp-diagnostic-range
-                                (plist-get :end)
-                                (plist-get :column)
-                                (1+))
-                :end-line (-> diag
-                              lsp-diagnostic-range
-                              (plist-get :end)
-                              (plist-get :line)
-                              (1+)))))
+                :id (lsp-diagnostic-code diag))))
        (funcall callback 'finished)))
 
 (defun lsp--flycheck-buffer ()
